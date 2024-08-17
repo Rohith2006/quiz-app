@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import '../models/quiz.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/question.dart';
 import '../services/quiz_service.dart';
 import 'result_screen.dart';
 
 class QuizScreen extends StatefulWidget {
-  final Quiz quiz;
+  final int numberOfQuestions;
+  final String difficulty;
 
-  QuizScreen({required this.quiz});
+  QuizScreen({required this.numberOfQuestions, required this.difficulty});
 
   @override
   _QuizScreenState createState() => _QuizScreenState();
@@ -14,35 +17,56 @@ class QuizScreen extends StatefulWidget {
 
 class _QuizScreenState extends State<QuizScreen> {
   final QuizService _quizService = QuizService();
+  late Future<List<Question>> _questionsFuture;
   int currentQuestionIndex = 0;
   int score = 0;
   int? selectedAnswerIndex;
   bool showFeedback = false;
+  bool hintVisible = false; // Track hint visibility
 
-  void _checkAnswer(int selectedIndex) {
+  @override
+  void initState() {
+    super.initState();
+    _questionsFuture = _fetchQuestions();
+  }
+
+  Future<List<Question>> _fetchQuestions() async {
+    final response = await http.get(Uri.parse(
+        'https://go-server-theta.vercel.app/get-random-questions?difficulty=${widget.difficulty.toLowerCase()}&num=${widget.numberOfQuestions}'));
+
+    if (response.statusCode == 200) {
+      List<dynamic> questionsJson = json.decode(response.body);
+      return questionsJson.map((q) => Question.fromJson(q)).toList();
+    } else {
+      throw Exception('Failed to load questions');
+    }
+  }
+
+  void _checkAnswer(Question question, int selectedIndex) {
     setState(() {
       selectedAnswerIndex = selectedIndex;
       showFeedback = true;
-      if (selectedIndex == widget.quiz.questions[currentQuestionIndex].correctOptionIndex) {
+      if (selectedIndex == question.correctOptionIndex) {
         score++;
       }
     });
 
     Future.delayed(Duration(milliseconds: 750), () {
       setState(() {
-        if (currentQuestionIndex < widget.quiz.questions.length - 1) {
+        if (currentQuestionIndex < widget.numberOfQuestions - 1) {
           currentQuestionIndex++;
           selectedAnswerIndex = null;
           showFeedback = false;
+          hintVisible = false; // Reset hint visibility
         } else {
-          _quizService.saveQuizResult(widget.quiz.name, score);
+          _quizService.saveQuizResult('${widget.difficulty} Quiz', score);
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (context) => ResultScreen(
-                quizName: widget.quiz.name,
+                quizName: '${widget.difficulty} Quiz',
                 score: score,
-                totalQuestions: widget.quiz.questions.length,
+                totalQuestions: widget.numberOfQuestions,
               ),
             ),
           );
@@ -51,9 +75,19 @@ class _QuizScreenState extends State<QuizScreen> {
     });
   }
 
-  Color _getOptionColor(int optionIndex) {
+  void _revealHint() {
+    setState(() {
+      hintVisible = true;
+    });
+  }
+
+  void _exitQuiz() {
+    Navigator.pop(context);
+  }
+
+  Color _getOptionColor(Question question, int optionIndex) {
     if (showFeedback) {
-      if (optionIndex == widget.quiz.questions[currentQuestionIndex].correctOptionIndex) {
+      if (optionIndex == question.correctOptionIndex) {
         return Colors.green.shade200;
       } else if (optionIndex == selectedAnswerIndex) {
         return Colors.red.shade200;
@@ -62,9 +96,9 @@ class _QuizScreenState extends State<QuizScreen> {
     return Colors.white;
   }
 
-  IconData? _getOptionIcon(int optionIndex) {
+  IconData? _getOptionIcon(Question question, int optionIndex) {
     if (showFeedback) {
-      if (optionIndex == widget.quiz.questions[currentQuestionIndex].correctOptionIndex) {
+      if (optionIndex == question.correctOptionIndex) {
         return Icons.check_circle;
       } else if (optionIndex == selectedAnswerIndex) {
         return Icons.cancel;
@@ -77,84 +111,153 @@ class _QuizScreenState extends State<QuizScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(16),
-              color: Colors.blue,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    widget.quiz.name,
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  Text(
-                    'Score: $score/${widget.quiz.questions.length}',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-            LinearProgressIndicator(
-              value: (currentQuestionIndex + 1) / widget.quiz.questions.length,
-              backgroundColor: Colors.grey[200],
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-            ),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    Text(
-                      'Question ${currentQuestionIndex + 1}/${widget.quiz.questions.length}',
-                      style: TextStyle(fontSize: 18.0, color: Colors.grey[600]),
+        child: FutureBuilder<List<Question>>(
+          future: _questionsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(child: Text('No questions available'));
+            }
+
+            List<Question> questions = snapshot.data!;
+            Question currentQuestion = questions[currentQuestionIndex];
+
+            return Stack(
+              children: [
+                Column(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(16),
+                      color: Colors.blue,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${widget.difficulty} Quiz',
+                            style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
+                          ),
+                          Text(
+                            'Score: $score/${widget.numberOfQuestions}',
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
+                        ],
+                      ),
                     ),
-                    SizedBox(height: 10.0),
-                    Text(
-                      widget.quiz.questions[currentQuestionIndex].questionText,
-                      style: TextStyle(fontSize: 22.0, fontWeight: FontWeight.bold),
+                    LinearProgressIndicator(
+                      value: (currentQuestionIndex + 1) / widget.numberOfQuestions,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                     ),
-                    SizedBox(height: 20.0),
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: widget.quiz.questions[currentQuestionIndex].options.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8.0),
-                            child: ElevatedButton(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      widget.quiz.questions[currentQuestionIndex].options[index],
-                                      style: TextStyle(fontSize: 18.0, color: Colors.black87),
-                                    ),
-                                  ),
-                                  if (_getOptionIcon(index) != null)
-                                    Icon(_getOptionIcon(index), color: _getOptionColor(index) == Colors.green.shade200 ? Colors.green : Colors.red),
-                                ],
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _getOptionColor(index),
-                                padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10.0),
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            Text(
+                              'Question ${currentQuestionIndex + 1}/${widget.numberOfQuestions}',
+                              style: TextStyle(
+                                  fontSize: 18.0, color: Colors.grey[600]),
+                            ),
+                            SizedBox(height: 10.0),
+                            Text(
+                              currentQuestion.question,
+                              style: TextStyle(
+                                  fontSize: 22.0, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 20.0),
+                            if (hintVisible)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 20.0),
+                                child: Text(
+                                  'Hint: ${currentQuestion.hint}',
+                                  style: TextStyle(fontSize: 18.0, color: Colors.blue),
                                 ),
                               ),
-                              onPressed: showFeedback ? null : () => _checkAnswer(index),
+                            Expanded(
+                              child: ListView.builder(
+                                itemCount: currentQuestion.options.length,
+                                itemBuilder: (context, index) {
+                                  return Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                                    child: ElevatedButton(
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              currentQuestion.options[index],
+                                              style: TextStyle(
+                                                  fontSize: 18.0,
+                                                  color: Colors.black87),
+                                            ),
+                                          ),
+                                          if (_getOptionIcon(
+                                                  currentQuestion, index) !=
+                                              null)
+                                            Icon(
+                                                _getOptionIcon(
+                                                    currentQuestion, index),
+                                                color: _getOptionColor(
+                                                            currentQuestion,
+                                                            index) ==
+                                                        Colors.green.shade200
+                                                    ? Colors.green
+                                                    : Colors.red),
+                                        ],
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            _getOptionColor(currentQuestion, index),
+                                        padding: EdgeInsets.symmetric(
+                                            vertical: 15.0, horizontal: 20.0),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10.0),
+                                        ),
+                                      ),
+                                      onPressed: showFeedback
+                                          ? null
+                                          : () =>
+                                              _checkAnswer(currentQuestion, index),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
-                          );
-                        },
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ),
-          ],
+                Positioned(
+                  bottom: 72, // Adjust bottom space for better spacing
+                  left: 16,
+                  right: 16,
+                  child: ElevatedButton(
+                    onPressed: _revealHint,
+                    child: Text('Show Hint'),
+                  ),
+                ),
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  right: 16,
+                  child: ElevatedButton(
+                    onPressed: _exitQuiz,
+                    child: Text('Exit Quiz'),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
