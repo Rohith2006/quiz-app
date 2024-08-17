@@ -14,33 +14,50 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text('Quiz App'),
       ),
-      body: ListView(
-        padding: EdgeInsets.all(16.0),
-        children: [
-          Text(
-            'Available Quizzes',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 16),
-          ...quizzes.map((quiz) => Card(
-            child: ListTile(
-              title: Text(quiz.name),
-              trailing: Icon(Icons.arrow_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => QuizScreen(quiz: quiz)),
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Available Quizzes',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-            ),
-          )).toList(),
-          SizedBox(height: 20),
-          ElevatedButton(
-            child: Text('View History'),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => HistoryScreen()),
-            ),
+              SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: quizzes.length,
+                  itemBuilder: (context, index) {
+                    return Card(
+                      elevation: 2,
+                      margin: EdgeInsets.symmetric(vertical: 8),
+                      child: ListTile(
+                        title: Text(quizzes[index].name),
+                        trailing: Icon(Icons.arrow_forward_ios),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => QuizScreen(quiz: quizzes[index])),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                child: Text('View History'),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 15.0),
+                ),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => HistoryScreen()),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

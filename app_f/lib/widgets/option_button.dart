@@ -9,12 +9,20 @@ class OptionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.0),
-      child: ElevatedButton(
-        child: Text(text),
-        onPressed: onPressed,
+    return ElevatedButton(
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 18.0),
       ),
+      style: ElevatedButton.styleFrom(
+        foregroundColor: Colors.black87, backgroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(vertical: 15.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+          side: BorderSide(color: Colors.grey[300]!),
+        ),
+      ),
+      onPressed: onPressed,
     );
   }
 }
