@@ -22,7 +22,12 @@ class _QuizScreenState extends State<QuizScreen> {
   int score = 0;
   int? selectedAnswerIndex;
   bool showFeedback = false;
-  bool hintVisible = false; // Track hint visibility
+  bool hintVisible = false;
+
+ 
+  final Color primaryColor = Color(0xFFAB47BC); // Light Purple
+  final Color accentColor = Color(0xFF6A1B9A); // Deep Purple
+  final Color backgroundColor = Color.fromARGB(255, 255, 255, 255);
 
   @override
   void initState() {
@@ -57,7 +62,7 @@ class _QuizScreenState extends State<QuizScreen> {
           currentQuestionIndex++;
           selectedAnswerIndex = null;
           showFeedback = false;
-          hintVisible = false; // Reset hint visibility
+          hintVisible = false;
         } else {
           _quizService.saveQuizResult('${widget.difficulty} Quiz', score);
           Navigator.pushReplacement(
@@ -115,11 +120,11 @@ class _QuizScreenState extends State<QuizScreen> {
           future: _questionsFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator());
+              return Center(child: CircularProgressIndicator(color: primaryColor));
             } else if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
+              return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: accentColor)));
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Center(child: Text('No questions available'));
+              return Center(child: Text('No questions available', style: TextStyle(color: accentColor)));
             }
 
             List<Question> questions = snapshot.data!;
@@ -131,7 +136,7 @@ class _QuizScreenState extends State<QuizScreen> {
                   children: [
                     Container(
                       padding: EdgeInsets.all(16),
-                      color: Colors.blue,
+                      color: primaryColor,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -151,8 +156,8 @@ class _QuizScreenState extends State<QuizScreen> {
                     ),
                     LinearProgressIndicator(
                       value: (currentQuestionIndex + 1) / widget.numberOfQuestions,
-                      backgroundColor: Colors.grey[200],
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                      backgroundColor: backgroundColor,
+                      valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                     ),
                     Expanded(
                       child: Padding(
@@ -162,14 +167,12 @@ class _QuizScreenState extends State<QuizScreen> {
                           children: <Widget>[
                             Text(
                               'Question ${currentQuestionIndex + 1}/${widget.numberOfQuestions}',
-                              style: TextStyle(
-                                  fontSize: 18.0, color: Colors.grey[600]),
+                              style: TextStyle(fontSize: 18.0, color: accentColor),
                             ),
                             SizedBox(height: 10.0),
                             Text(
                               currentQuestion.question,
-                              style: TextStyle(
-                                  fontSize: 22.0, fontWeight: FontWeight.bold),
+                              style: TextStyle(fontSize: 22.0, fontWeight: FontWeight.bold, color: accentColor),
                             ),
                             SizedBox(height: 20.0),
                             if (hintVisible)
@@ -177,7 +180,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                 padding: const EdgeInsets.only(bottom: 20.0),
                                 child: Text(
                                   'Hint: ${currentQuestion.hint}',
-                                  style: TextStyle(fontSize: 18.0, color: Colors.blue),
+                                  style: TextStyle(fontSize: 18.0, color: primaryColor),
                                 ),
                               ),
                             Expanded(
@@ -188,44 +191,29 @@ class _QuizScreenState extends State<QuizScreen> {
                                     padding: EdgeInsets.symmetric(vertical: 8.0),
                                     child: ElevatedButton(
                                       child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Expanded(
                                             child: Text(
                                               currentQuestion.options[index],
-                                              style: TextStyle(
-                                                  fontSize: 18.0,
-                                                  color: Colors.black87),
+                                              style: TextStyle(fontSize: 18.0, color: Colors.black87),
                                             ),
                                           ),
-                                          if (_getOptionIcon(
-                                                  currentQuestion, index) !=
-                                              null)
-                                            Icon(
-                                                _getOptionIcon(
-                                                    currentQuestion, index),
-                                                color: _getOptionColor(
-                                                            currentQuestion,
-                                                            index) ==
-                                                        Colors.green.shade200
+                                          if (_getOptionIcon(currentQuestion, index) != null)
+                                            Icon(_getOptionIcon(currentQuestion, index),
+                                                color: _getOptionColor(currentQuestion, index) == Colors.green.shade200
                                                     ? Colors.green
                                                     : Colors.red),
                                         ],
                                       ),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            _getOptionColor(currentQuestion, index),
-                                        padding: EdgeInsets.symmetric(
-                                            vertical: 15.0, horizontal: 20.0),
+                                        backgroundColor: _getOptionColor(currentQuestion, index),
+                                        padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(10.0),
                                         ),
                                       ),
-                                      onPressed: showFeedback
-                                          ? null
-                                          : () =>
-                                              _checkAnswer(currentQuestion, index),
+                                      onPressed: showFeedback ? null : () => _checkAnswer(currentQuestion, index),
                                     ),
                                   );
                                 },
@@ -238,12 +226,19 @@ class _QuizScreenState extends State<QuizScreen> {
                   ],
                 ),
                 Positioned(
-                  bottom: 72, // Adjust bottom space for better spacing
+                  bottom: 72,
                   left: 16,
                   right: 16,
                   child: ElevatedButton(
                     onPressed: _revealHint,
                     child: Text('Show Hint'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30.0),
+                      ),
+                    ),
                   ),
                 ),
                 Positioned(
@@ -253,6 +248,13 @@ class _QuizScreenState extends State<QuizScreen> {
                   child: ElevatedButton(
                     onPressed: _exitQuiz,
                     child: Text('Exit Quiz'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30.0),
+                      ),
+                    ),
                   ),
                 ),
               ],
