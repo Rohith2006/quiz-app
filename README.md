@@ -2,16 +2,17 @@
 
 This is a mobile quiz application built using Flutter, with a backend powered by a Go server and MongoDB for database management. The app allows users to select the number of questions and difficulty level for the quiz. The backend is deployed using Vercel.
 
-<img src="assets/homeScreen.jpeg" alt="Home Screen" width="240">
-<br/>
-<img src="assets/historyScreen.jpeg" alt="History Screen" width="240" >
-<br/>
-<img src="assets/quizSettingScreen.jpeg" alt="Quiz Setting Screen" width="240" >
-<br/>
-<img src="assets/quizScreen.jpeg" alt="Quiz Screen" width="240" >
-<br/>
-<img src="assets/resultScreen.jpeg" alt="Result Screen" width="240" >
-<br/>
+<img src="assets/homeScreen.jpeg" alt="Home Screen" width="240" style="margin: 10px;">
+
+<img src="assets/historyScreen.jpeg" alt="History Screen" width="240" style="margin: 10px;">
+
+<img src="assets/quizSettingScreen.jpeg" alt="Quiz Setting Screen" width="240" style="margin: 10px;">
+
+<img src="assets/quizScreen.jpeg" alt="Quiz Screen" width="240" style="margin: 10px;">
+
+<img src="assets/resultScreen.jpeg" alt="Result Screen" width="240" style="margin: 10px;">
+
+
 
 ## Features
 
@@ -139,4 +140,6 @@ Feel free to adjust the content according to your needs!
 **APK:**
 
 https://drive.google.com/file/d/19pbyYynTK_uTfDXGOnapXB_bqb-NOsFc/view?usp=sharing
+
+You can also find erlier versions of this app in apkS folder.
 
